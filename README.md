@@ -8,8 +8,8 @@ https://pascomscjmarilia-creator.github.io/pascom-scjm-marilia/
 | `agente-pascom-novo.html` | Cadastro de **novos** agentes (com foto) |
 | `agente-pascom-ativo.html` | Cadastro de agentes **já ativos** (com foto) |
 | `painel.html` | **Painel interno** dos agentes (novos e ativos): fotos, fichas, status. Login Google da conta da Pascom |
-| `ata-pascom.html` | Confirmação de presença nas reuniões (código no WhatsApp + assinatura no dedo) |
-| `ata-pascom-redigir.html` | Redação da ata (só quem tem "Redige ata" na planilha) |
+| `ata-pascom.html` | *(fora de produção por ora, sem link no menu)* Confirmação de presença nas reuniões (código no WhatsApp + assinatura no dedo) |
+| `ata-pascom-redigir.html` | *(fora de produção por ora, sem link no menu)* Redação da ata (só quem tem "Redige ata" na planilha) |
 
 ## Como funciona
 - As páginas são estáticas. Os dados **não ficam neste repositório**: as páginas enviam para o n8n (webhooks), que grava na planilha **Pascom_Cadastros_e_Atas** (Google Sheets) e guarda as fotos/assinaturas no Drive.
