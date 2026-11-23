@@ -829,3 +829,11 @@ button.ag-foto-vazia:hover { background: #efe6d6; border-color: var(--vinho, #7a
 .sub-abas-agentes { display: flex; gap: 8px; margin: 0 0 12px; flex-wrap: wrap; }
 .sub-aba-ag { padding: 9px 16px; border-radius: 20px; border: 1px solid var(--vinho, #7a1f2b); background: #fff; color: var(--vinho, #7a1f2b); font-weight: 700; font-size: 0.92rem; cursor: pointer; }
 .sub-aba-ag.ativa { background: var(--vinho, #7a1f2b); color: #fff; }
+
+/* ---- Botão em destaque "Página inicial da Pascom" (painel): dourado da Paróquia, para chamar a atenção ---- */
+a.btn-inicio { display: inline-flex; align-items: center; gap: 8px; background: var(--dourado, #c9a24a); color: var(--vinho-escuro, #591622); font-weight: 800; font-size: 1.05rem; line-height: 1.2; padding: 12px 24px; border-radius: 30px; border: 2px solid var(--vinho, #7a1f2b); text-decoration: none; box-shadow: 0 4px 12px rgba(89, 22, 34, 0.35); transition: transform .12s ease, box-shadow .12s ease, background .12s ease; }
+a.btn-inicio:hover { background: #d8b45d; transform: translateY(-2px); box-shadow: 0 7px 16px rgba(89, 22, 34, 0.42); text-decoration: none; }
+a.btn-inicio:active { transform: translateY(0); box-shadow: 0 2px 6px rgba(89, 22, 34, 0.35); }
+a.btn-inicio:focus-visible { outline: 3px solid var(--vinho, #7a1f2b); outline-offset: 3px; }
+@media (max-width: 640px) { a.btn-inicio { display: flex; justify-content: center; width: 100%; } }
+@media print { a.btn-inicio { display: none !important; } }
