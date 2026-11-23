@@ -48,6 +48,23 @@
   .ag-foto-acoes { flex:1; }
   #formAgente label.ag-botao-foto { display:inline-block; background:#fff; color:var(--vinho); border:1px solid var(--vinho); padding:10px 14px; border-radius:8px; font-weight:600; font-size:0.95rem; cursor:pointer; margin:0 0 6px; }
   .ag-link { background:none; border:none; color:#b3261e; text-decoration:underline; cursor:pointer; font-size:0.9rem; padding:6px 0 0; display:block; }
+  /* ---- Buscar a ficha pelo WhatsApp e editar ---- */
+  .ag-busca { background:#fff7e0; border:1px solid #f1d98a; border-radius:10px; padding:14px 16px; margin:0 0 18px; }
+  .ag-busca-topo strong { display:block; color:var(--vinho); font-size:1rem; }
+  .ag-busca-topo span { color:#555; font-size:0.9rem; }
+  .ag-busca-linha { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+  .ag-busca-linha input { flex:1 1 180px; min-width:0; padding:11px; border:1px solid var(--cinza-borda); border-radius:6px; font-size:1rem; font-family:inherit; background:#fff; box-sizing:border-box; }
+  .ag-busca-linha button { background:var(--vinho); color:#fff; border:none; padding:11px 16px; border-radius:6px; font-weight:600; font-size:0.95rem; cursor:pointer; }
+  .ag-busca-linha button:disabled { opacity:0.6; cursor:default; }
+  #buscaMsg { margin:8px 0 0; font-weight:600; font-size:0.9rem; }
+  #buscaMsg.erro { color:#b3261e; }
+  .ag-busca .ag-link { display:inline; color:var(--vinho); padding:0; font-size:0.85rem; }
+  .ag-edicao { background:#eef7ee; border:1px solid #9fd09f; border-radius:10px; padding:12px 16px; margin:0 0 18px; }
+  .ag-edicao strong { color:#1b6e3a; }
+  .ag-edicao p { margin:6px 0 0; font-size:0.92rem; color:#333; }
+  .ag-edicao .ag-link { color:#555; padding-top:8px; }
+  .ag-falta { border-left:4px solid #b3261e; padding:6px 0 6px 10px; background:#fff6f5; border-radius:6px; }
+  .ag-falta > label::after, .ag-falta > .rotulo::after { content:' — falta preencher'; color:#b3261e; font-weight:700; font-size:0.85em; }
 </style>
 </head>
 <body>
@@ -62,8 +79,31 @@
   <main>
     <section class="ag-card" id="cartaoFormulario">
       <h2>Cadastro de novo agente da Pascom</h2>
-      <p class="ag-intro">Quer servir na <strong>Pascom</strong> (Pastoral da Comunicação)? Preencha os dados abaixo. A equipe recebe o cadastro e entra em contato pelo WhatsApp informado.<br><small>Você já é agente da Pascom? <a href="agente-pascom-ativo.html">Use o cadastro de agentes ativos</a>.</small></p>
+      <p class="ag-intro">Quer servir na <strong>Pascom</strong> (Pastoral da Comunicação)? Preencha os dados abaixo. A equipe recebe o cadastro e entra em contato pelo WhatsApp informado.</p>
       <p class="ag-intro" style="margin-top:-8px;">Prefere o papel? <a href="Ficha_Cadastro_Agente_Pascom.pdf" target="_blank" rel="noopener">Baixe a ficha para imprimir (PDF)</a> e entregue à equipe da Pascom ou na secretaria.</p>
+
+      <div class="ag-busca" id="blocoBusca">
+        <div class="ag-busca-topo"><strong>🔎 Já fez o seu cadastro?</strong><span>Digite o seu WhatsApp para abrir a sua ficha, completar o que falta ou corrigir os seus dados.</span></div>
+        <div class="ag-busca-linha" id="buscaPasso1">
+          <input type="tel" id="buscaWhats" inputmode="tel" autocomplete="tel" placeholder="(14) 99999-9999" aria-label="Seu WhatsApp">
+          <button type="button" id="btnPedirCodigo">Enviar código</button>
+        </div>
+        <div id="buscaPasso2" hidden>
+          <p class="ag-dica" id="buscaInfo"></p>
+          <div class="ag-busca-linha">
+            <input type="text" id="buscaCodigo" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="Código de 6 dígitos" aria-label="Código recebido no WhatsApp">
+            <button type="button" id="btnEntrarFicha">Abrir minha ficha</button>
+          </div>
+          <p class="ag-dica"><button type="button" class="ag-link" id="btnReenviarCodigo">Reenviar código</button> · <button type="button" class="ag-link" id="btnTrocarNumero">Usar outro número</button> · <button type="button" class="ag-link" id="btnNaoTenho">Ainda não tenho cadastro</button></p>
+        </div>
+        <p id="buscaMsg" role="status"></p>
+      </div>
+
+      <div class="ag-edicao" id="avisoEdicao" hidden>
+        <strong id="edicaoTitulo"></strong>
+        <p id="edicaoTexto"></p>
+        <button type="button" class="ag-link" id="btnSairEdicao">Cancelar e voltar para uma ficha em branco</button>
+      </div>
 
       <form id="formAgente" novalidate>
 
@@ -197,7 +237,7 @@
     </section>
 
     <section class="ag-card ag-sucesso" id="cartaoSucesso" hidden>
-      <h2>✅ Cadastro recebido!</h2>
+      <h2 id="tituloSucesso">✅ Cadastro recebido!</h2>
       <p id="sucessoNome"></p>
       <div class="ag-encontro" id="sucessoEncontro" hidden>
         <strong>📌 Reserve na sua agenda</strong>
@@ -215,6 +255,9 @@
   // ============================================================
   const CONFIG = {
     WEBHOOK_URL: 'https://paroquia-scjm-n8n-paroquia.ndjgby.easypanel.host/webhook/agente-pascom-cadastro',
+    // Buscar a ficha pelo WhatsApp (código no WhatsApp) e editar
+    WEBHOOK_FICHA: 'https://paroquia-scjm-n8n-paroquia.ndjgby.easypanel.host/webhook/agente-pascom-ficha',
+    TIPO_FICHA: 'novo',
 
     // Para fechar o cadastro, troque para false (a página passa a mostrar a mensagem abaixo).
     CADASTRO_ABERTO: true,
@@ -236,7 +279,7 @@
   function formatarDataBR(iso) { const [a, m, d] = iso.split('-'); return d + '/' + m + '/' + a; }
 
   // ---------- Foto: reduz no próprio aparelho (miniatura quadrada para a planilha + foto maior para o Drive) ----------
-  const FOTO = { miniatura: '', grande: '' };
+  const FOTO = { miniatura: '', grande: '', existente: false };
   async function carregarImagem(arquivo) {
     if (window.createImageBitmap) {
       try { return await createImageBitmap(arquivo, { imageOrientation: 'from-image' }); } catch (e) { /* tenta pelo <img> */ }
@@ -271,10 +314,10 @@
     const prev = el('fotoPrevia'); const tem = !!FOTO.miniatura;
     prev.classList.toggle('com-foto', tem);
     prev.style.backgroundImage = tem ? 'url(' + FOTO.miniatura + ')' : '';
-    el('btnRemoverFoto').hidden = !tem; el('blocoConsentFoto').hidden = !tem;
-    if (!tem) el('consentimentoFoto').checked = false;
+    el('btnRemoverFoto').hidden = !tem; el('blocoConsentFoto').hidden = !tem || FOTO.existente;
+    if (!tem || FOTO.existente) el('consentimentoFoto').checked = false;
   }
-  function limparFoto() { FOTO.miniatura = ''; FOTO.grande = ''; el('foto').value = ''; mostrarPrevia(); }
+  function limparFoto() { FOTO.miniatura = ''; FOTO.grande = ''; FOTO.existente = false; el('foto').value = ''; mostrarPrevia(); }
   async function aoEscolherFoto() {
     const arquivo = el('foto').files && el('foto').files[0];
     if (!arquivo) return;
@@ -283,7 +326,7 @@
       if (!/^image\//.test(arquivo.type) && !/\.(jpe?g|png|webp|heic|heif)$/i.test(arquivo.name || '')) throw new Error('tipo');
       if (arquivo.size > 30 * 1024 * 1024) throw new Error('grande');
       const r = await processarFoto(arquivo);
-      FOTO.miniatura = r.miniatura; FOTO.grande = r.grande; mostrarPrevia();
+      FOTO.miniatura = r.miniatura; FOTO.grande = r.grande; FOTO.existente = false; mostrarPrevia();
       el('dicaFoto').style.color = '';
       el('dicaFoto').textContent = 'Foto pronta ✔ Se quiser trocar, escolha outra.';
     } catch (e) {
@@ -318,20 +361,21 @@
 
   async function enviar(payload, aoSucesso) {
     if (!el('consentimento').checked) return mostrarErro('Marque a autorização para concluir o cadastro.');
-    if (FOTO.miniatura && !el('consentimentoFoto').checked) return mostrarErro('Marque a autorização para usar a sua foto (ou remova a foto).');
+    if (FOTO.miniatura && !FOTO.existente && !el('consentimentoFoto').checked) return mostrarErro('Marque a autorização para usar a sua foto (ou remova a foto).');
     payload.consentimento = true;
     payload.site = el('site').value;
-    if (FOTO.miniatura) { payload.miniatura = FOTO.miniatura; payload.foto = FOTO.grande; payload.consentimentoFoto = true; }
+    if (FOTO.miniatura && !FOTO.existente) { payload.miniatura = FOTO.miniatura; payload.foto = FOTO.grande; payload.consentimentoFoto = true; }
+    if (FICHA.token) { payload.acao = 'salvar'; payload.tipo = CONFIG.TIPO_FICHA; payload.token = FICHA.token; if (!FOTO.miniatura && FICHA.tinhaFoto) payload.removerFoto = true; }
     btn.disabled = true; btn.textContent = 'Enviando…';
     try {
-      const resp = await fetch(CONFIG.WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const resp = await fetch(FICHA.token ? CONFIG.WEBHOOK_FICHA : CONFIG.WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const dados = await resp.json();
-      if (dados.sucesso) aoSucesso(); else mostrarErro(dados.mensagem || 'Não foi possível concluir o cadastro.');
+      if (dados.sucesso) aoSucesso(); else { mostrarErro(dados.mensagem || 'Não foi possível concluir o cadastro.'); if (dados.sessaoExpirada) sairEdicao(); }
     } catch (err) {
       mostrarErro('Não foi possível enviar agora. Confira sua internet e tente novamente em instantes.');
       console.error(err);
     } finally {
-      btn.disabled = false; btn.textContent = 'Enviar cadastro';
+      btn.disabled = false; btn.textContent = FICHA.token ? 'Salvar alterações' : 'Enviar cadastro';
     }
   }
 
@@ -373,13 +417,145 @@
     return dia.charAt(0).toUpperCase() + dia.slice(1) + ', ' + Number(m[3]) + ' de ' + MESES[+m[2] - 1] + ' de ' + m[1] + ' às ' + enc.hora + ' (' + enc.local + ')';
   }
   function mostrarSucesso(apelido) {
+    const edicao = !!FICHA.token;
     el('cartaoFormulario').hidden = true;
     el('cartaoSucesso').hidden = false;
     el('sucessoNome').textContent = 'Obrigado, ' + apelido + '! Seu cadastro como novo agente da Pascom foi enviado.';
     const q = encontroValido();
     if (q) { el('sucessoEncontroQuando').textContent = '🗓️ ' + q; el('sucessoEncontro').hidden = false; }
+    if (edicao) {
+      el('tituloSucesso').textContent = '✅ Ficha atualizada!';
+      el('sucessoNome').textContent = 'Obrigado, ' + apelido + '! Os seus dados foram atualizados.';
+      if (el('sucessoEncontro')) el('sucessoEncontro').hidden = true;
+      FICHA.token = '';
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
+
+  // ============================================================
+  // BUSCAR A FICHA PELO WHATSAPP (código no WhatsApp) E EDITAR — FICHA_PASCOM_V1
+  // A pessoa digita o número, recebe um código no WhatsApp, e a ficha abre preenchida com o que está na planilha;
+  // o que falta fica destacado em vermelho. Salvar grava na MESMA linha (não cria cadastro novo).
+  // ============================================================
+  const FICHA = { token: '', tinhaFoto: false };
+  const buscaMsg = (t, erro) => { const m = el('buscaMsg'); m.textContent = t || ''; m.className = erro ? 'erro' : ''; };
+  async function chamarFicha(corpo) {
+    const resp = await fetch(CONFIG.WEBHOOK_FICHA, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({ tipo: CONFIG.TIPO_FICHA, site: el('site').value }, corpo)) });
+    return resp.json();
+  }
+  const travarBusca = (ligado) => ['btnPedirCodigo', 'btnEntrarFicha', 'btnReenviarCodigo'].forEach((id) => { el(id).disabled = !!ligado; });
+  const telBonito = (t) => { const d = String(t || '').replace(/\D/g, '').replace(/^55(?=\d{10,11}$)/, ''); return d.length === 11 ? '(' + d.slice(0, 2) + ') ' + d.slice(2, 7) + '-' + d.slice(7) : d.length === 10 ? '(' + d.slice(0, 2) + ') ' + d.slice(2, 6) + '-' + d.slice(6) : String(t || ''); };
+  const dataParaInput = (br) => { const m = String(br || '').match(/^(\d{2})\/(\d{2})\/(\d{4})$/); return m ? m[3] + '-' + m[2] + '-' + m[1] : ''; };
+
+  async function pedirCodigo() {
+    const tel = el('buscaWhats').value.trim();
+    if (!tel) return buscaMsg('Digite o seu WhatsApp com DDD.', true);
+    buscaMsg('Enviando…'); travarBusca(true);
+    try {
+      const d = await chamarFicha({ acao: 'codigo', whatsapp: tel });
+      if (!d.sucesso) return buscaMsg(d.mensagem || 'Não foi possível pedir o código agora.', true);
+      el('buscaPasso1').hidden = true; el('buscaPasso2').hidden = false;
+      el('buscaInfo').textContent = 'Se existir uma ficha com o número ' + d.tel + ', enviamos agora um código de 6 dígitos por WhatsApp (vale por ' + d.minutos + ' minutos). Digite o código abaixo.';
+      buscaMsg(''); el('buscaCodigo').value = ''; el('buscaCodigo').focus();
+    } catch (e) { console.error(e); buscaMsg('Não foi possível conectar agora. Confira a internet e tente de novo.', true); }
+    finally { travarBusca(false); }
+  }
+
+  // Campos obrigatórios que ainda estão vazios ficam destacados; o destaque some quando a pessoa preenche.
+  function marcarFaltas() {
+    form.querySelectorAll('.ag-falta').forEach((n) => n.classList.remove('ag-falta'));
+    const pai = (x) => (typeof x === 'string' ? el(x) : x).parentElement;
+    const radio = (nome) => { const r = form.querySelector('input[name="' + nome + '"]'); return r ? r.closest('.ag-opcoes').parentElement : null; };
+    const regras = [];
+    const r = (cond, alvo) => { if (alvo) regras.push([cond, alvo]); };
+    const nome = el('nome').value.trim();
+    r(!(nome.length >= 3 && /\s/.test(nome)), pai('nome'));
+    r(!el('apelido').value.trim(), pai('apelido'));
+    r(!el('nascimento').value, pai('nascimento'));
+    r(!marcado('crisma'), radio('crisma'));
+    r(!el('whatsapp').value.trim(), pai('whatsapp'));
+    r(!el('email').value.trim(), pai('email'));
+    r(!marcado('participa'), radio('participa'));
+    r(marcado('participa') === 'Sim' && !el('qual').value.trim(), el('blocoQual'));
+    r(!el('comunidade').value, pai('comunidade'));
+    if (el('listaAreas')) r(!marcados('areas').length, el('listaAreas').parentElement);
+    if (form.querySelector('input[name="experiencia"]')) r(!marcado('experiencia'), radio('experiencia'));
+    if (el('desde')) r(!el('desde').value, pai('desde'));
+    if (form.querySelector('input[name="formar"]')) r(!marcado('formar'), radio('formar'));
+    let n = 0; regras.forEach(([falta, alvo]) => { if (falta) { alvo.classList.add('ag-falta'); n += 1; } });
+    return n;
+  }
+  form.addEventListener('input', (e) => { const f = e.target.closest && e.target.closest('.ag-falta'); if (f) f.classList.remove('ag-falta'); });
+  form.addEventListener('change', (e) => { const f = e.target.closest && e.target.closest('.ag-falta'); if (f) f.classList.remove('ag-falta'); });
+
+  function aplicarFicha(d) {
+    form.reset(); limparFoto();
+    el('nome').value = d.nome || ''; el('apelido').value = d.apelido || ''; el('nascimento').value = dataParaInput(d.nascimento);
+    el('whatsapp').value = telBonito(d.whatsapp); el('email').value = d.email || '';
+    const marca = (nome, valor) => { const o = form.querySelector('input[name="' + nome + '"][value="' + valor + '"]'); if (o) { o.checked = true; o.dispatchEvent(new Event('change', { bubbles: true })); } };
+    if (d.crisma) marca('crisma', d.crisma);
+    if (d.participa) marca('participa', d.participa);
+    el('qual').value = d.qual || '';
+    const sel = el('comunidade'); if (d.comunidade && Array.prototype.some.call(sel.options, (o) => o.value === d.comunidade)) sel.value = d.comunidade;
+    if (el('listaAreas')) (d.areas || []).forEach((a) => { const o = form.querySelector('input[name="areas"][value="' + a + '"]'); if (o) o.checked = true; });
+    if (form.querySelector('input[name="experiencia"]')) {
+      const m = String(d.experiencia || '').match(/^(Sim|Não)(?:: (.+))?$/);
+      if (m) { marca('experiencia', m[1]); if (m[1] === 'Sim') el('experienciaTexto').value = m[2] || ''; }
+      el('motivacao').value = d.motivacao || '';
+      if (d.confirmouEncontro && !el('blocoEncontro').hidden) el('confirmaEncontro').checked = true;
+    }
+    if (el('desde')) { const m = String(d.desde || '').match(/^(\d{2})\/(\d{4})$/); el('desde').value = m ? m[2] + '-' + m[1] : ''; }
+    if (d.formar) marca('formar', d.formar);
+    if (d.foto) { FOTO.miniatura = d.foto; FOTO.grande = ''; FOTO.existente = true; FICHA.tinhaFoto = true; mostrarPrevia(); el('dicaFoto').style.color = ''; el('dicaFoto').textContent = 'Esta é a sua foto atual. Se quiser, escolha outra ou remova.'; }
+    else FICHA.tinhaFoto = false;
+  }
+
+  async function entrarFicha() {
+    const codigo = el('buscaCodigo').value.replace(/\D/g, '');
+    if (codigo.length !== 6) return buscaMsg('Digite o código de 6 dígitos que chegou no seu WhatsApp.', true);
+    buscaMsg('Conferindo…'); travarBusca(true);
+    try {
+      const d = await chamarFicha({ acao: 'entrar', whatsapp: el('buscaWhats').value.trim(), codigo });
+      if (!d.sucesso) {
+        buscaMsg(d.mensagem || 'Não foi possível abrir a ficha.', true);
+        if (d.novoCodigo) { el('buscaPasso2').hidden = true; el('buscaPasso1').hidden = false; }
+        return;
+      }
+      FICHA.token = d.token;
+      aplicarFicha(d.dados);
+      const faltam = marcarFaltas();
+      el('blocoBusca').hidden = true; el('avisoEdicao').hidden = false;
+      el('edicaoTitulo').textContent = '✏️ Ficha de ' + (d.apelido || 'agente') + ' aberta para edição';
+      el('edicaoTexto').textContent = (faltam ? 'Faltam ' + faltam + (faltam === 1 ? ' informação' : ' informações') + ' (destacadas em vermelho). Complete' : 'Está tudo preenchido. Confira os dados e, se precisar, corrija') + ' e toque em “Salvar alterações”. Por segurança, esta tela fica aberta por ' + d.minutos + ' minutos.';
+      btn.textContent = 'Salvar alterações';
+      resultado.textContent = ''; resultado.className = '';
+      el('avisoEdicao').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (e) { console.error(e); buscaMsg('Não foi possível conectar agora. Confira a internet e tente de novo.', true); }
+    finally { travarBusca(false); }
+  }
+
+  function sairEdicao() {
+    FICHA.token = ''; FICHA.tinhaFoto = false;
+    form.reset(); limparFoto();
+    form.querySelectorAll('.ag-falta').forEach((n) => n.classList.remove('ag-falta'));
+    form.querySelectorAll('input[name="participa"], input[name="experiencia"]').forEach((r) => r.dispatchEvent(new Event('change', { bubbles: true })));
+    el('blocoQual').hidden = true;
+    el('avisoEdicao').hidden = true; el('blocoBusca').hidden = false; el('buscaPasso1').hidden = false; el('buscaPasso2').hidden = true; buscaMsg('');
+    btn.textContent = 'Enviar cadastro';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    if (!CONFIG.CADASTRO_ABERTO) return;
+    el('btnPedirCodigo').addEventListener('click', pedirCodigo);
+    el('buscaWhats').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); pedirCodigo(); } });
+    el('btnEntrarFicha').addEventListener('click', entrarFicha);
+    el('buscaCodigo').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); entrarFicha(); } });
+    el('btnReenviarCodigo').addEventListener('click', pedirCodigo);
+    el('btnTrocarNumero').addEventListener('click', () => { el('buscaPasso2').hidden = true; el('buscaPasso1').hidden = false; buscaMsg(''); el('buscaWhats').focus(); });
+    el('btnNaoTenho').addEventListener('click', () => { el('blocoBusca').hidden = true; });
+    el('btnSairEdicao').addEventListener('click', sairEdicao);
+  });
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
