@@ -48,7 +48,8 @@
   .ag-foto-acoes { flex:1; }
   #formAgente label.ag-botao-foto { display:inline-block; background:#fff; color:var(--vinho); border:1px solid var(--vinho); padding:10px 14px; border-radius:8px; font-weight:600; font-size:0.95rem; cursor:pointer; margin:0 0 6px; }
   .ag-link { background:none; border:none; color:#b3261e; text-decoration:underline; cursor:pointer; font-size:0.9rem; padding:6px 0 0; display:block; }
-  /* ---- Buscar a ficha pelo WhatsApp e editar ---- */
+  /* ---- Começar pelo WhatsApp: buscar a ficha e editar ---- */
+  #formAgente[hidden] { display:none !important; }
   .ag-busca { background:#fff7e0; border:1px solid #f1d98a; border-radius:10px; padding:14px 16px; margin:0 0 18px; }
   .ag-busca-topo strong { display:block; color:var(--vinho); font-size:1rem; }
   .ag-busca-topo span { color:#555; font-size:0.9rem; }
@@ -59,10 +60,11 @@
   #buscaMsg { margin:8px 0 0; font-weight:600; font-size:0.9rem; }
   #buscaMsg.erro { color:#b3261e; }
   .ag-busca .ag-link { display:inline; color:var(--vinho); padding:0; font-size:0.85rem; }
-  .ag-edicao { background:#eef7ee; border:1px solid #9fd09f; border-radius:10px; padding:12px 16px; margin:0 0 18px; }
+  .ag-numero { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; background:#f4f1ec; border:1px solid var(--cinza-borda); border-radius:10px; padding:10px 14px; margin:0 0 14px; font-size:0.95rem; }
+  .ag-numero .ag-link { display:inline; color:var(--vinho); padding:0; font-size:0.85rem; }
+  .ag-edicao { background:#eef7ee; border:1px solid #9fd09f; border-radius:10px; padding:12px 16px; margin:0 0 14px; }
   .ag-edicao strong { color:#1b6e3a; }
   .ag-edicao p { margin:6px 0 0; font-size:0.92rem; color:#333; }
-  .ag-edicao .ag-link { color:#555; padding-top:8px; }
   .ag-falta { border-left:4px solid #b3261e; padding:6px 0 6px 10px; background:#fff6f5; border-radius:6px; }
   .ag-falta > label::after, .ag-falta > .rotulo::after { content:' — falta preencher'; color:#b3261e; font-weight:700; font-size:0.85em; }
 </style>
@@ -83,10 +85,10 @@
       <p class="ag-intro" style="margin-top:-8px;">Prefere o papel? <a href="Ficha_Cadastro_Agente_Pascom.pdf" target="_blank" rel="noopener">Baixe a ficha para imprimir (PDF)</a> e entregue à equipe da Pascom ou na secretaria.</p>
 
       <div class="ag-busca" id="blocoBusca">
-        <div class="ag-busca-topo"><strong>🔎 Já fez o seu cadastro?</strong><span>Digite o seu WhatsApp para abrir a sua ficha, completar o que falta ou corrigir os seus dados.</span></div>
+        <div class="ag-busca-topo"><strong>📱 Comece pelo seu WhatsApp</strong><span>Se você já tem cadastro, abrimos a sua ficha para completar ou corrigir. Se ainda não tem, você preenche uma ficha nova.</span></div>
         <div class="ag-busca-linha" id="buscaPasso1">
-          <input type="tel" id="buscaWhats" inputmode="tel" autocomplete="tel" placeholder="(14) 99999-9999" aria-label="Seu WhatsApp">
-          <button type="button" id="btnPedirCodigo">Enviar código</button>
+          <input type="tel" id="buscaWhats" inputmode="tel" autocomplete="tel" placeholder="(14) 99999-9999" aria-label="Seu WhatsApp com DDD">
+          <button type="button" id="btnPedirCodigo">Continuar</button>
         </div>
         <div id="buscaPasso2" hidden>
           <p class="ag-dica" id="buscaInfo"></p>
@@ -94,7 +96,7 @@
             <input type="text" id="buscaCodigo" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="Código de 6 dígitos" aria-label="Código recebido no WhatsApp">
             <button type="button" id="btnEntrarFicha">Abrir minha ficha</button>
           </div>
-          <p class="ag-dica"><button type="button" class="ag-link" id="btnReenviarCodigo">Reenviar código</button> · <button type="button" class="ag-link" id="btnTrocarNumero">Usar outro número</button> · <button type="button" class="ag-link" id="btnNaoTenho">Ainda não tenho cadastro</button></p>
+          <p class="ag-dica"><button type="button" class="ag-link" id="btnReenviarCodigo">Reenviar código</button> · <button type="button" class="ag-link" id="btnTrocarNumero">Usar outro número</button> · Não chegou? Procure a equipe da Pascom.</p>
         </div>
         <p id="buscaMsg" role="status"></p>
       </div>
@@ -102,10 +104,15 @@
       <div class="ag-edicao" id="avisoEdicao" hidden>
         <strong id="edicaoTitulo"></strong>
         <p id="edicaoTexto"></p>
-        <button type="button" class="ag-link" id="btnSairEdicao">Cancelar e voltar para uma ficha em branco</button>
       </div>
 
-      <form id="formAgente" novalidate>
+      <div class="ag-numero" id="faixaNumero" hidden>
+        <span>📱 Seu WhatsApp: <strong id="numeroConfirmado"></strong></span>
+        <button type="button" class="ag-link" id="btnTrocarNumero2">Trocar número / começar de novo</button>
+      </div>
+      <p class="ag-intro" id="avisoNovaFicha" hidden>Não encontramos cadastro com este número. Preencha a ficha abaixo para se cadastrar.</p>
+
+      <form id="formAgente" novalidate hidden>
 
         <div>
           <label for="nome">Nome completo</label>
@@ -131,10 +138,7 @@
           </div>
         </div>
 
-        <div>
-          <label for="whatsapp">Telefone / WhatsApp</label>
-          <input type="tel" id="whatsapp" inputmode="tel" autocomplete="tel" placeholder="(14) 99999-9999" required>
-        </div>
+        <input type="hidden" id="whatsapp">
 
         <div>
           <label for="email">E-mail</label>
@@ -370,7 +374,7 @@
     try {
       const resp = await fetch(FICHA.token ? CONFIG.WEBHOOK_FICHA : CONFIG.WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const dados = await resp.json();
-      if (dados.sucesso) aoSucesso(); else { mostrarErro(dados.mensagem || 'Não foi possível concluir o cadastro.'); if (dados.sessaoExpirada) sairEdicao(); }
+      if (dados.sucesso) aoSucesso(); else { mostrarErro(dados.mensagem || 'Não foi possível concluir o cadastro.'); if (dados.sessaoExpirada) irParaInicio(); }
     } catch (err) {
       mostrarErro('Não foi possível enviar agora. Confira sua internet e tente novamente em instantes.');
       console.error(err);
@@ -433,9 +437,9 @@
   }
 
   // ============================================================
-  // BUSCAR A FICHA PELO WHATSAPP (código no WhatsApp) E EDITAR — FICHA_PASCOM_V1
-  // A pessoa digita o número, recebe um código no WhatsApp, e a ficha abre preenchida com o que está na planilha;
-  // o que falta fica destacado em vermelho. Salvar grava na MESMA linha (não cria cadastro novo).
+  // COMEÇAR PELO WHATSAPP: buscar a ficha (código no WhatsApp) e editar — FICHA_PASCOM_V2
+  // O número é digitado UMA vez, no começo. Se já existe ficha com ele, mandamos um código no WhatsApp e a ficha abre preenchida
+  // (o que falta fica em vermelho); se não existe, a ficha nova abre já com o número. Salvar grava na MESMA linha (não cria cadastro novo).
   // ============================================================
   const FICHA = { token: '', tinhaFoto: false };
   const buscaMsg = (t, erro) => { const m = el('buscaMsg'); m.textContent = t || ''; m.className = erro ? 'erro' : ''; };
@@ -446,16 +450,35 @@
   const travarBusca = (ligado) => ['btnPedirCodigo', 'btnEntrarFicha', 'btnReenviarCodigo'].forEach((id) => { el(id).disabled = !!ligado; });
   const telBonito = (t) => { const d = String(t || '').replace(/\D/g, '').replace(/^55(?=\d{10,11}$)/, ''); return d.length === 11 ? '(' + d.slice(0, 2) + ') ' + d.slice(2, 7) + '-' + d.slice(7) : d.length === 10 ? '(' + d.slice(0, 2) + ') ' + d.slice(2, 6) + '-' + d.slice(6) : String(t || ''); };
   const dataParaInput = (br) => { const m = String(br || '').match(/^(\d{2})\/(\d{2})\/(\d{4})$/); return m ? m[3] + '-' + m[2] + '-' + m[1] : ''; };
+  const mostrarNumero = (tel) => { el('numeroConfirmado').textContent = telBonito(tel); el('faixaNumero').hidden = false; };
+
+  // Volta ao começo (pede o número de novo) e deixa a ficha em branco.
+  function irParaInicio() {
+    FICHA.token = ''; FICHA.tinhaFoto = false;
+    form.reset(); limparFoto(); el('whatsapp').value = '';
+    form.querySelectorAll('.ag-falta').forEach((n) => n.classList.remove('ag-falta'));
+    form.querySelectorAll('input[name="participa"], input[name="experiencia"]').forEach((r) => r.dispatchEvent(new Event('change', { bubbles: true })));
+    el('blocoQual').hidden = true;
+    form.hidden = true; el('avisoEdicao').hidden = true; el('faixaNumero').hidden = true; el('avisoNovaFicha').hidden = true;
+    el('blocoBusca').hidden = false; el('buscaPasso1').hidden = false; el('buscaPasso2').hidden = true; buscaMsg('');
+    btn.textContent = 'Enviar cadastro'; resultado.textContent = ''; resultado.className = '';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 
   async function pedirCodigo() {
     const tel = el('buscaWhats').value.trim();
     if (!tel) return buscaMsg('Digite o seu WhatsApp com DDD.', true);
-    buscaMsg('Enviando…'); travarBusca(true);
+    buscaMsg('Procurando…'); travarBusca(true);
     try {
       const d = await chamarFicha({ acao: 'codigo', whatsapp: tel });
-      if (!d.sucesso) return buscaMsg(d.mensagem || 'Não foi possível pedir o código agora.', true);
+      if (!d.sucesso) return buscaMsg(d.mensagem || 'Não foi possível buscar agora.', true);
+      if (d.encontrada === false) { // sem ficha com este número: abre a ficha nova, já com o número
+        el('whatsapp').value = tel; el('blocoBusca').hidden = true; mostrarNumero(tel); el('avisoNovaFicha').hidden = false; form.hidden = false; buscaMsg('');
+        el('nome').focus(); return;
+      }
+      if (d.semWhatsapp) return buscaMsg('Encontramos o cadastro com este número, mas ele não recebe WhatsApp. Procure a equipe da Pascom para atualizar os dados.', true);
       el('buscaPasso1').hidden = true; el('buscaPasso2').hidden = false;
-      el('buscaInfo').textContent = 'Se existir uma ficha com o número ' + d.tel + ', enviamos agora um código de 6 dígitos por WhatsApp (vale por ' + d.minutos + ' minutos). Digite o código abaixo.';
+      el('buscaInfo').textContent = 'Encontramos um cadastro com o número ' + d.tel + '. Enviamos um código de 6 dígitos para o seu WhatsApp (vale por ' + d.minutos + ' minutos). Digite o código abaixo para abrir a sua ficha.';
       buscaMsg(''); el('buscaCodigo').value = ''; el('buscaCodigo').focus();
     } catch (e) { console.error(e); buscaMsg('Não foi possível conectar agora. Confira a internet e tente de novo.', true); }
     finally { travarBusca(false); }
@@ -473,7 +496,6 @@
     r(!el('apelido').value.trim(), pai('apelido'));
     r(!el('nascimento').value, pai('nascimento'));
     r(!marcado('crisma'), radio('crisma'));
-    r(!el('whatsapp').value.trim(), pai('whatsapp'));
     r(!el('email').value.trim(), pai('email'));
     r(!marcado('participa'), radio('participa'));
     r(marcado('participa') === 'Sim' && !el('qual').value.trim(), el('blocoQual'));
@@ -524,7 +546,7 @@
       FICHA.token = d.token;
       aplicarFicha(d.dados);
       const faltam = marcarFaltas();
-      el('blocoBusca').hidden = true; el('avisoEdicao').hidden = false;
+      el('blocoBusca').hidden = true; mostrarNumero(d.dados.whatsapp); el('avisoNovaFicha').hidden = true; form.hidden = false; el('avisoEdicao').hidden = false;
       el('edicaoTitulo').textContent = '✏️ Ficha de ' + (d.apelido || 'agente') + ' aberta para edição';
       el('edicaoTexto').textContent = (faltam ? 'Faltam ' + faltam + (faltam === 1 ? ' informação' : ' informações') + ' (destacadas em vermelho). Complete' : 'Está tudo preenchido. Confira os dados e, se precisar, corrija') + ' e toque em “Salvar alterações”. Por segurança, esta tela fica aberta por ' + d.minutos + ' minutos.';
       btn.textContent = 'Salvar alterações';
@@ -532,17 +554,6 @@
       el('avisoEdicao').scrollIntoView({ behavior: 'smooth', block: 'start' });
     } catch (e) { console.error(e); buscaMsg('Não foi possível conectar agora. Confira a internet e tente de novo.', true); }
     finally { travarBusca(false); }
-  }
-
-  function sairEdicao() {
-    FICHA.token = ''; FICHA.tinhaFoto = false;
-    form.reset(); limparFoto();
-    form.querySelectorAll('.ag-falta').forEach((n) => n.classList.remove('ag-falta'));
-    form.querySelectorAll('input[name="participa"], input[name="experiencia"]').forEach((r) => r.dispatchEvent(new Event('change', { bubbles: true })));
-    el('blocoQual').hidden = true;
-    el('avisoEdicao').hidden = true; el('blocoBusca').hidden = false; el('buscaPasso1').hidden = false; el('buscaPasso2').hidden = true; buscaMsg('');
-    btn.textContent = 'Enviar cadastro';
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   window.addEventListener('DOMContentLoaded', () => {
@@ -553,8 +564,7 @@
     el('buscaCodigo').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); entrarFicha(); } });
     el('btnReenviarCodigo').addEventListener('click', pedirCodigo);
     el('btnTrocarNumero').addEventListener('click', () => { el('buscaPasso2').hidden = true; el('buscaPasso1').hidden = false; buscaMsg(''); el('buscaWhats').focus(); });
-    el('btnNaoTenho').addEventListener('click', () => { el('blocoBusca').hidden = true; });
-    el('btnSairEdicao').addEventListener('click', sairEdicao);
+    el('btnTrocarNumero2').addEventListener('click', irParaInicio);
   });
 
   form.addEventListener('submit', async (e) => {
