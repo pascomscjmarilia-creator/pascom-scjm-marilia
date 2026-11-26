@@ -702,14 +702,16 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     const btnCopiar = e.target.closest('.btn-copiar-link-ag');
     if (btnCopiar) {
-      const msg = el('msgCopiarLinkAgentes');
+      // A mensagem "Link copiado!" aparece ao lado do botão clicado (antes ficava sempre na linha dos ativos e parecia que tinha copiado o link errado).
+      document.querySelectorAll('.msg-copiar-link').forEach((m) => { m.textContent = ''; });
+      const msg = btnCopiar.parentElement.querySelector('.msg-copiar-link') || el('msgCopiarLinkAgentes');
       try {
         await navigator.clipboard.writeText(el(btnCopiar.dataset.alvo).textContent.trim());
         msg.textContent = 'Link copiado!';
       } catch (err) {
         msg.textContent = 'Não consegui copiar. Selecione o link acima e copie com Ctrl+C.';
       }
-      setTimeout(() => { msg.textContent = ''; }, 3000);
+      clearTimeout(window._tmCopiarLink); window._tmCopiarLink = setTimeout(() => { msg.textContent = ''; }, 3000);
     }
   });
   el('btnSubAgNovos').addEventListener('click', () => trocarGrupoAgentes('novos'));
