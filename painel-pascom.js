@@ -18,7 +18,12 @@ const CONFIG = {
   // Foto do agente: a foto maior (800 px) vai para o Drive pelo n8n, que confere o login Google antes de guardar
   WEBHOOK_AGENTES_FOTO: 'https://paroquia-scjm-n8n-paroquia.ndjgby.easypanel.host/webhook/agentes-foto',
 
-  // E-mails autorizados (checagem de UX — a segurança de verdade é a permissão de compartilhamento da planilha no Google)
+  // QUEM ENTRA no painel: aba "Acesso_Painel" da planilha (E-mail | Nome | Pode enviar foto | Ativo | Observação).
+  // Para incluir alguém: nova linha na aba + compartilhar a planilha com a pessoa. Para tirar: Ativo = Não (e tirar o compartilhamento).
+  // A segurança de verdade é o compartilhamento da planilha no Google; a aba é a lista que a coordenação controla sem mexer em código.
+  ACESSO_RANGE: 'Acesso_Painel!A:E',
+  // Contas de RESERVA: entram mesmo se a aba sumir ou não puder ser lida (para ninguém ficar trancado para fora).
+  // Só ficam de fora se estiverem na aba com Ativo = Não.
   ALLOWED_EMAILS: ['pascomscjmarilia@gmail.com'],
 };
 // ============================================================
@@ -72,8 +77,9 @@ async function handleLoginSucesso() {
     const resp = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { Authorization: 'Bearer ' + accessToken } });
     const perfil = await resp.json();
     const email = (perfil.email || '').toLowerCase();
-    if (!CONFIG.ALLOWED_EMAILS.map(e => e.toLowerCase()).includes(email)) {
-      mostrarErroLogin('Conta "' + email + '" não autorizada para este app.');
+    const acesso = await verificarAcesso(email);
+    if (!acesso.ok) {
+      mostrarErroLogin(acesso.mensagem);
       accessToken = null;
       return;
     }
@@ -84,6 +90,36 @@ async function handleLoginSucesso() {
     await carregarAgentes();
   } catch (e) {
     mostrarErroLogin('Erro ao verificar sua conta. Tente novamente.');
+  }
+}
+
+// Lê a aba Acesso_Painel e decide se a conta entra. Ativo em branco = Sim.
+function decidirAcesso(email, linhas, erroLeitura) {
+  const reserva = CONFIG.ALLOWED_EMAILS.map(e => e.toLowerCase()).includes(email);
+  if (erroLeitura) {
+    if (reserva) return { ok: true };
+    if (erroLeitura === 'SEM_PERMISSAO') return { ok: false, mensagem: 'A conta "' + email + '" ainda não tem acesso à planilha da Pascom. Peça à coordenação para compartilhar a planilha com este e-mail.' };
+    return { ok: false, mensagem: 'Não foi possível conferir a lista de acesso (aba "Acesso_Painel"). Tente de novo em instantes ou fale com a coordenação.' };
+  }
+  const nc = (x) => String(x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+  const cab = (linhas[0] || []).map(nc);
+  const iEmail = cab.findIndex(c => /mail/.test(c));
+  const iAtivo = cab.findIndex(c => /^ativ/.test(c));
+  const linha = linhas.slice(1).find(l => nc(l[iEmail >= 0 ? iEmail : 0]) === email);
+  if (linha) {
+    const ativo = iAtivo >= 0 ? nc(linha[iAtivo]) : '';
+    if (/^n(ao)?$/.test(ativo)) return { ok: false, mensagem: 'O acesso da conta "' + email + '" está desativado. Fale com a coordenação da Pascom.' };
+    return { ok: true };
+  }
+  if (reserva) return { ok: true };
+  return { ok: false, mensagem: 'Conta "' + email + '" não autorizada para este painel. Peça à coordenação para incluir o seu e-mail na lista de acesso.' };
+}
+
+async function verificarAcesso(email) {
+  try {
+    return decidirAcesso(email, await buscarValoresSheet(CONFIG.ACESSO_RANGE), null);
+  } catch (e) {
+    return decidirAcesso(email, [], e.message === 'SEM_PERMISSAO' ? 'SEM_PERMISSAO' : 'ERRO');
   }
 }
 
